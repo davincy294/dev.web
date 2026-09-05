@@ -28,8 +28,9 @@ app.use(cors({
   credentials: true
 }));
 app.use(express.json({ limit: "100kb" }));
-app.use(express.static(path.resolve(__dirname, "../../")));
-app.use("/uploads", express.static(path.resolve(__dirname, "../../uploads")));
+const appRoot = process.env.APP_ROOT ? path.resolve(process.env.APP_ROOT) : path.resolve(process.cwd());
+app.use(express.static(appRoot));
+app.use("/uploads", express.static(path.join(appRoot, "uploads")));
 
 const authSchema = z.object({
   email: z.string().trim().email().max(254),
@@ -217,8 +218,8 @@ app.post("/api/admin/uploads", requireAdmin, async (request, response, next) => 
     const buffer = Buffer.from(data.data.split(",")[1], "base64");
     if (buffer.length > 5 * 1024 * 1024) { response.status(413).json({ error: "Each image must be 5 MB or smaller" }); return; }
     const filename = `${crypto.randomUUID()}.${extension}`;
-    await fs.mkdir(path.resolve(__dirname, "../../uploads"), { recursive: true });
-    await fs.writeFile(path.resolve(__dirname, "../../uploads", filename), buffer, { flag: "wx" });
+    await fs.mkdir(path.join(appRoot, "uploads"), { recursive: true });
+    await fs.writeFile(path.join(appRoot, "uploads", filename), buffer, { flag: "wx" });
     response.status(201).json({ url: `/uploads/${filename}` });
   } catch (error) { next(error); }
 });
